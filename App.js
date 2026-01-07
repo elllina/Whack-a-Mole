@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, createContext, useContext } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,6 +8,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Platform,
+  Image,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -21,28 +22,196 @@ const COLORS = {
   white: "#FFFFFF",
 };
 
-// Logo SVG as a component (simplified representation)
-const Logo = ({ size = 120 }) => {
-  const scale = size / 120;
+// Translations
+const translations = {
+  en: {
+    home: "Home",
+    creations: "Our Creations",
+    howToOrder: "How to Order",
+    contact: "Contact",
+    tagline: "• By Lucy •",
+    heroSubtitle: "Artisan cakes crafted with love and passion",
+    heroDescription: "Every cake tells a story. Let us create yours with the finest ingredients and artistic flair that makes each celebration unforgettable.",
+    sectionCreations: "Our Creations",
+    sectionHowToOrder: "How to Order",
+    cakes: [
+      { name: "Classic Vanilla Dream", description: "Light and fluffy vanilla sponge with silky buttercream frosting", price: "$45" },
+      { name: "Chocolate Paradise", description: "Rich dark chocolate layers with ganache and chocolate shavings", price: "$55" },
+      { name: "Strawberry Bliss", description: "Fresh strawberries with cream cheese frosting on vanilla base", price: "$50" },
+      { name: "Caramel Delight", description: "Salted caramel drizzle over moist caramel cake layers", price: "$52" },
+      { name: "Lemon Zest", description: "Tangy lemon curd filling with light meringue frosting", price: "$48" },
+      { name: "Red Velvet Romance", description: "Classic red velvet with cream cheese frosting and white chocolate", price: "$58" },
+    ],
+    steps: [
+      { title: "Choose Your Cake", description: "Browse our selection and pick your favorite flavor and design, or let us create something custom just for you." },
+      { title: "Contact Us", description: "Reach out via phone, email, or Instagram to discuss your order details, size, and any special requests." },
+      { title: "Confirm & Pay", description: "We'll send you a quote. A 50% deposit secures your order, with the balance due on pickup." },
+      { title: "Enjoy!", description: "Pick up your cake or have it delivered. Get ready to celebrate with a delicious masterpiece!" },
+    ],
+    getInTouch: "Get in Touch",
+    footerText: "Made with love in every layer",
+    footerCopyright: "© 2026 Crema Flora. All rights reserved.",
+    imagePlaceholder: "Image Coming Soon",
+  },
+  hy: {
+    home: "Գdelays",
+    creations: "Մdelays Delaysdelays",
+    howToOrder: "Delays Delaysdelays",
+    contact: "Delays",
+    tagline: "• Delays Delaysdelays •",
+    heroSubtitle: "Delays delays, delaysdelays delaysdelays delays delays",
+    heroDescription: "Delays delays delays delaysdelays delaysdelays: Delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays:",
+    sectionCreations: "Մdelays Delaysdelays",
+    sectionHowToOrder: "Delays Delaysdelays",
+    cakes: [
+      { name: "Delays Delays", description: "Delays delays delays delays delays delays delays delays delays delays", price: "֏18,000" },
+      { name: "Delays Delays", description: "Delays delays delays delays delays delays delays delays delays delays delays", price: "֏22,000" },
+      { name: "Delays Delays", description: "Delays delays delays delays delays delays delays delays delays delays delays", price: "֏20,000" },
+      { name: "Delays Delays", description: "Delays delays delays delays delays delays delays delays delays delays delays", price: "֏21,000" },
+      { name: "Delays Delays", description: "Delays delays delays delays delays delays delays delays delays delays delays", price: "֏19,000" },
+      { name: "Delays Delays Delays", description: "Delays delays delays delays delays delays delays delays delays delays delays delays", price: "֏23,000" },
+    ],
+    steps: [
+      { title: "Delays Delaysdelays", description: "Delays delays delays delays delays delays delays delays delays delays delays delays delays:" },
+      { title: "Delays Delays", description: "Delays delays delays delays delays delays delays delays delays delays delays delays delays delays:" },
+      { title: "Delays delays Delays", description: "Delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays:" },
+      { title: "Delays!", description: "Delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays delays!" },
+    ],
+    getInTouch: "Delays Delays",
+    footerText: "Delays delays delays delays delays delays delays delays delays delays",
+    footerCopyright: "© 2026 Crema Flora. Delays delays delays delays:",
+    imagePlaceholder: "Delays delays delays",
+  },
+  ru: {
+    home: "Главная",
+    creations: "Наши Творения",
+    howToOrder: "Как Заказать",
+    contact: "Контакты",
+    tagline: "• От Люси •",
+    heroSubtitle: "Авторские торты, созданные с любовью и страстью",
+    heroDescription: "Каждый торт рассказывает историю. Позвольте нам создать вашу с лучшими ингредиентами и художественным талантом, который сделает каждое торжество незабываемым.",
+    sectionCreations: "Наши Творения",
+    sectionHowToOrder: "Как Заказать",
+    cakes: [
+      { name: "Классическая Ваниль", description: "Лёгкий и воздушный ванильный бисквит с нежным сливочным кремом", price: "₽3,500" },
+      { name: "Шоколадный Рай", description: "Насыщенные шоколадные слои с ганашем и шоколадной стружкой", price: "₽4,200" },
+      { name: "Клубничное Блаженство", description: "Свежая клубника со сливочным сыром на ванильной основе", price: "₽3,800" },
+      { name: "Карамельное Наслаждение", description: "Солёная карамель на влажных карамельных слоях торта", price: "₽4,000" },
+      { name: "Лимонная Свежесть", description: "Пикантный лимонный курд с лёгким безе", price: "₽3,600" },
+      { name: "Красный Бархат Романс", description: "Классический красный бархат со сливочным сыром и белым шоколадом", price: "₽4,500" },
+    ],
+    steps: [
+      { title: "Выберите Торт", description: "Просмотрите наш выбор и выберите любимый вкус и дизайн, или позвольте нам создать что-то уникальное для вас." },
+      { title: "Свяжитесь с Нами", description: "Позвоните, напишите или свяжитесь через Instagram, чтобы обсудить детали заказа, размер и особые пожелания." },
+      { title: "Подтвердите и Оплатите", description: "Мы отправим вам расчёт. Предоплата 50% подтверждает заказ, остаток — при получении." },
+      { title: "Наслаждайтесь!", description: "Заберите торт или закажите доставку. Приготовьтесь праздновать с восхитительным шедевром!" },
+    ],
+    getInTouch: "Связаться с Нами",
+    footerText: "Сделано с любовью в каждом слое",
+    footerCopyright: "© 2026 Crema Flora. Все права защищены.",
+    imagePlaceholder: "Скоро Фото",
+  },
+};
+
+// Language Context
+const LanguageContext = createContext();
+
+const LanguageProvider = ({ children }) => {
+  const [language, setLanguage] = useState("en");
+  const t = translations[language];
   return (
-    <View style={[styles.logoContainer, { width: size, height: size }]}>
-      {/* Center bean shape */}
-      <View
-        style={[
-          styles.logoCenter,
-          { width: 20 * scale, height: 25 * scale, borderRadius: 10 * scale },
-        ]}
-      />
-      {/* Petals */}
-      <View style={[styles.logoPetal, styles.petalTop, { transform: [{ scale }] }]} />
-      <View style={[styles.logoPetal, styles.petalBottom, { transform: [{ scale }] }]} />
-      <View style={[styles.logoPetalSide, styles.petalLeft, { transform: [{ scale }] }]} />
-      <View style={[styles.logoPetalSide, styles.petalRight, { transform: [{ scale }] }]} />
-      {/* Decorative curves */}
-      <View style={[styles.curveOuter, styles.curveTopLeft, { borderColor: COLORS.yellow }]} />
-      <View style={[styles.curveOuter, styles.curveTopRight, { borderColor: COLORS.yellow }]} />
-      <View style={[styles.curveOuter, styles.curveBottomLeft, { borderColor: COLORS.yellow }]} />
-      <View style={[styles.curveOuter, styles.curveBottomRight, { borderColor: COLORS.yellow }]} />
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+      {children}
+    </LanguageContext.Provider>
+  );
+};
+
+const useLanguage = () => useContext(LanguageContext);
+
+// Language Switcher Component
+const LanguageSwitcher = () => {
+  const { language, setLanguage } = useLanguage();
+  const languages = [
+    { code: "en", label: "EN" },
+    { code: "hy", label: "ՀԱՅ" },
+    { code: "ru", label: "РУ" },
+  ];
+
+  return (
+    <View style={styles.languageSwitcher}>
+      {languages.map((lang, index) => (
+        <TouchableOpacity
+          key={lang.code}
+          onPress={() => setLanguage(lang.code)}
+          style={[
+            styles.langButton,
+            language === lang.code && styles.langButtonActive,
+            index < languages.length - 1 && styles.langButtonBorder,
+          ]}
+        >
+          <Text
+            style={[
+              styles.langButtonText,
+              language === lang.code && styles.langButtonTextActive,
+            ]}
+          >
+            {lang.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+};
+
+// Header Component
+const Header = ({ scrollViewRef, sectionsRef }) => {
+  const { t } = useLanguage();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const scrollToSection = (sectionKey) => {
+    if (sectionsRef.current[sectionKey] && scrollViewRef.current) {
+      sectionsRef.current[sectionKey].measureLayout(
+        scrollViewRef.current,
+        (x, y) => {
+          scrollViewRef.current.scrollTo({ y: y - 70, animated: true });
+        },
+        () => {}
+      );
+    }
+  };
+
+  const navItems = [
+    { key: "hero", label: t.home },
+    { key: "creations", label: t.creations },
+    { key: "howToOrder", label: t.howToOrder },
+  ];
+
+  return (
+    <View style={[styles.header, isScrolled && styles.headerScrolled]}>
+      <View style={styles.headerContent}>
+        <View style={styles.headerLeft}>
+          <Image
+            source={require("./assets/logo.png")}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.headerBrand}>Crema Flora</Text>
+        </View>
+
+        <View style={styles.headerNav}>
+          {navItems.map((item) => (
+            <TouchableOpacity
+              key={item.key}
+              onPress={() => scrollToSection(item.key)}
+              style={styles.navItem}
+            >
+              <Text style={styles.navItemText}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <LanguageSwitcher />
+      </View>
     </View>
   );
 };
@@ -108,7 +277,7 @@ const FadeIn = ({ children, delay = 0, style }) => {
 };
 
 // Cake Card Component
-const CakeCard = ({ name, description, price, delay }) => {
+const CakeCard = ({ name, description, price, delay, imagePlaceholder }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const onPressIn = () => {
@@ -136,12 +305,11 @@ const CakeCard = ({ name, description, price, delay }) => {
         <Animated.View
           style={[styles.cakeCard, { transform: [{ scale: scaleAnim }] }]}
         >
-          {/* Placeholder for cake image */}
           <View style={styles.cakeImagePlaceholder}>
             <View style={styles.placeholderIcon}>
               <Text style={styles.placeholderEmoji}>🎂</Text>
             </View>
-            <Text style={styles.placeholderText}>Image Coming Soon</Text>
+            <Text style={styles.placeholderText}>{imagePlaceholder}</Text>
           </View>
           <View style={styles.cakeInfo}>
             <Text style={styles.cakeName}>{name}</Text>
@@ -167,44 +335,13 @@ const OrderStep = ({ number, title, description, delay }) => (
   </FadeIn>
 );
 
-// Sample cake data
-const cakes = [
-  {
-    name: "Classic Vanilla Dream",
-    description: "Light and fluffy vanilla sponge with silky buttercream frosting",
-    price: "$45",
-  },
-  {
-    name: "Chocolate Paradise",
-    description: "Rich dark chocolate layers with ganache and chocolate shavings",
-    price: "$55",
-  },
-  {
-    name: "Strawberry Bliss",
-    description: "Fresh strawberries with cream cheese frosting on vanilla base",
-    price: "$50",
-  },
-  {
-    name: "Caramel Delight",
-    description: "Salted caramel drizzle over moist caramel cake layers",
-    price: "$52",
-  },
-  {
-    name: "Lemon Zest",
-    description: "Tangy lemon curd filling with light meringue frosting",
-    price: "$48",
-  },
-  {
-    name: "Red Velvet Romance",
-    description: "Classic red velvet with cream cheese frosting and white chocolate",
-    price: "$58",
-  },
-];
-
-export default function App() {
+// Main App Content
+const AppContent = () => {
+  const { t } = useLanguage();
+  const scrollViewRef = useRef(null);
+  const sectionsRef = useRef({});
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Parallax effect for hero
   const heroTranslateY = scrollY.interpolate({
     inputRange: [0, 300],
     outputRange: [0, 100],
@@ -219,26 +356,24 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Animated.ScrollView
+      <Header scrollViewRef={scrollViewRef} sectionsRef={sectionsRef} />
+
+      <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
         scrollEventThrottle={16}
       >
         {/* Hero Section */}
-        <Animated.View
-          style={[
-            styles.heroSection,
-            {
-              transform: [{ translateY: heroTranslateY }],
-              opacity: heroOpacity,
-            },
-          ]}
+        <View
+          ref={(ref) => (sectionsRef.current.hero = ref)}
+          style={styles.heroSection}
         >
           <FloatingElement delay={0} duration={4000}>
-            <Logo size={140} />
+            <Image
+              source={require("./assets/logo.png")}
+              style={styles.heroLogo}
+              resizeMode="contain"
+            />
           </FloatingElement>
 
           <FadeIn delay={300}>
@@ -249,13 +384,11 @@ export default function App() {
           </FadeIn>
 
           <FadeIn delay={500}>
-            <Text style={styles.tagline}>• By Lucy •</Text>
+            <Text style={styles.tagline}>{t.tagline}</Text>
           </FadeIn>
 
           <FadeIn delay={700}>
-            <Text style={styles.heroSubtitle}>
-              Artisan cakes crafted with love and passion
-            </Text>
+            <Text style={styles.heroSubtitle}>{t.heroSubtitle}</Text>
           </FadeIn>
 
           <FadeIn delay={900}>
@@ -263,14 +396,9 @@ export default function App() {
           </FadeIn>
 
           <FadeIn delay={1100}>
-            <Text style={styles.heroDescription}>
-              Every cake tells a story. Let us create yours with the finest
-              ingredients and artistic flair that makes each celebration
-              unforgettable.
-            </Text>
+            <Text style={styles.heroDescription}>{t.heroDescription}</Text>
           </FadeIn>
 
-          {/* Decorative Elements */}
           <View style={styles.decorativeElements}>
             <FloatingElement delay={200} duration={3500}>
               <View style={[styles.decorativeCircle, { backgroundColor: COLORS.yellow }]} />
@@ -279,80 +407,84 @@ export default function App() {
               <View style={[styles.decorativeCircle, styles.circleRight, { backgroundColor: COLORS.orange }]} />
             </FloatingElement>
           </View>
-        </Animated.View>
+        </View>
 
         {/* Cakes Section */}
-        <View style={styles.cakesSection}>
+        <View
+          ref={(ref) => (sectionsRef.current.creations = ref)}
+          style={styles.cakesSection}
+        >
           <FadeIn delay={200}>
-            <Text style={styles.sectionTitle}>Our Creations</Text>
+            <Text style={styles.sectionTitle}>{t.sectionCreations}</Text>
             <View style={styles.sectionDivider} />
           </FadeIn>
 
           <View style={styles.cakesGrid}>
-            {cakes.map((cake, index) => (
+            {t.cakes.map((cake, index) => (
               <CakeCard
                 key={index}
                 name={cake.name}
                 description={cake.description}
                 price={cake.price}
                 delay={300 + index * 100}
+                imagePlaceholder={t.imagePlaceholder}
               />
             ))}
           </View>
         </View>
 
         {/* How to Order Section */}
-        <View style={styles.orderSection}>
+        <View
+          ref={(ref) => (sectionsRef.current.howToOrder = ref)}
+          style={styles.orderSection}
+        >
           <FadeIn delay={200}>
-            <Text style={styles.sectionTitle}>How to Order</Text>
+            <Text style={styles.sectionTitleLight}>{t.sectionHowToOrder}</Text>
             <View style={[styles.sectionDivider, { backgroundColor: COLORS.white }]} />
           </FadeIn>
 
           <View style={styles.orderSteps}>
-            <OrderStep
-              number="1"
-              title="Choose Your Cake"
-              description="Browse our selection and pick your favorite flavor and design, or let us create something custom just for you."
-              delay={300}
-            />
-            <OrderStep
-              number="2"
-              title="Contact Us"
-              description="Reach out via phone, email, or Instagram to discuss your order details, size, and any special requests."
-              delay={450}
-            />
-            <OrderStep
-              number="3"
-              title="Confirm & Pay"
-              description="We'll send you a quote. A 50% deposit secures your order, with the balance due on pickup."
-              delay={600}
-            />
-            <OrderStep
-              number="4"
-              title="Enjoy!"
-              description="Pick up your cake or have it delivered. Get ready to celebrate with a delicious masterpiece!"
-              delay={750}
-            />
+            {t.steps.map((step, index) => (
+              <OrderStep
+                key={index}
+                number={String(index + 1)}
+                title={step.title}
+                description={step.description}
+                delay={300 + index * 150}
+              />
+            ))}
           </View>
 
           <FadeIn delay={900}>
             <TouchableOpacity style={styles.contactButton}>
-              <Text style={styles.contactButtonText}>Get in Touch</Text>
+              <Text style={styles.contactButtonText}>{t.getInTouch}</Text>
             </TouchableOpacity>
           </FadeIn>
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Logo size={60} />
+          <Image
+            source={require("./assets/logo.png")}
+            style={styles.footerLogo}
+            resizeMode="contain"
+          />
           <Text style={styles.footerBrand}>Crema Flora</Text>
-          <Text style={styles.footerTagline}>By Lucy</Text>
+          <Text style={styles.footerTagline}>{t.tagline}</Text>
           <View style={styles.footerDivider} />
-          <Text style={styles.footerText}>Made with love in every layer</Text>
-          <Text style={styles.footerCopyright}>© 2026 Crema Flora. All rights reserved.</Text>
+          <Text style={styles.footerText}>{t.footerText}</Text>
+          <Text style={styles.footerCopyright}>{t.footerCopyright}</Text>
         </View>
-      </Animated.ScrollView>
+      </ScrollView>
     </View>
+  );
+};
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   );
 }
 
@@ -365,92 +497,119 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Logo Styles
-  logoContainer: {
-    position: "relative",
-    justifyContent: "center",
+  // Header Styles
+  header: {
+    position: Platform.OS === "web" ? "fixed" : "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.cream,
+    zIndex: 1000,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(42, 107, 107, 0.1)",
+    ...Platform.select({
+      web: {
+        boxShadow: "0 2px 10px rgba(42, 107, 107, 0.1)",
+      },
+      default: {
+        shadowColor: COLORS.teal,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 5,
+      },
+    }),
+  },
+  headerScrolled: {
+    backgroundColor: "rgba(255, 249, 240, 0.98)",
+  },
+  headerContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    maxWidth: 1200,
+    alignSelf: "center",
+    width: "100%",
+  },
+  headerLeft: {
+    flexDirection: "row",
     alignItems: "center",
   },
-  logoCenter: {
-    backgroundColor: COLORS.orange,
-    position: "absolute",
+  headerLogo: {
+    width: 40,
+    height: 40,
   },
-  logoPetal: {
-    position: "absolute",
-    width: 12,
-    height: 35,
-    backgroundColor: COLORS.orange,
-    borderRadius: 6,
+  headerBrand: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: COLORS.teal,
+    marginLeft: 10,
+    fontStyle: "italic",
   },
-  petalTop: {
-    top: 15,
+  headerNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    ...Platform.select({
+      web: {},
+      default: {
+        display: width > 600 ? "flex" : "none",
+      },
+    }),
   },
-  petalBottom: {
-    bottom: 15,
+  navItem: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
   },
-  logoPetalSide: {
-    position: "absolute",
-    width: 50,
-    height: 35,
-    backgroundColor: COLORS.yellow,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
+  navItemText: {
+    fontSize: 15,
+    color: COLORS.teal,
+    fontWeight: "500",
   },
-  petalLeft: {
-    left: 5,
-    transform: [{ rotate: "-15deg" }],
+
+  // Language Switcher
+  languageSwitcher: {
+    flexDirection: "row",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.teal,
+    overflow: "hidden",
   },
-  petalRight: {
-    right: 5,
-    transform: [{ rotate: "15deg" }, { scaleX: -1 }],
+  langButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  curveOuter: {
-    position: "absolute",
-    width: 30,
-    height: 30,
-    borderWidth: 3,
-    borderColor: "transparent",
-    borderRadius: 15,
+  langButtonActive: {
+    backgroundColor: COLORS.teal,
   },
-  curveTopLeft: {
-    top: 20,
-    left: 10,
-    borderTopColor: COLORS.yellow,
-    borderLeftColor: COLORS.yellow,
-    transform: [{ rotate: "-45deg" }],
+  langButtonBorder: {
+    borderRightWidth: 1,
+    borderRightColor: COLORS.teal,
   },
-  curveTopRight: {
-    top: 20,
-    right: 10,
-    borderTopColor: COLORS.yellow,
-    borderRightColor: COLORS.yellow,
-    transform: [{ rotate: "45deg" }],
+  langButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.teal,
   },
-  curveBottomLeft: {
-    bottom: 20,
-    left: 10,
-    borderBottomColor: COLORS.yellow,
-    borderLeftColor: COLORS.yellow,
-    transform: [{ rotate: "45deg" }],
-  },
-  curveBottomRight: {
-    bottom: 20,
-    right: 10,
-    borderBottomColor: COLORS.yellow,
-    borderRightColor: COLORS.yellow,
-    transform: [{ rotate: "-45deg" }],
+  langButtonTextActive: {
+    color: COLORS.white,
   },
 
   // Hero Section
   heroSection: {
     minHeight: 700,
-    paddingTop: Platform.OS === "web" ? 80 : 100,
+    paddingTop: Platform.OS === "web" ? 120 : 140,
     paddingBottom: 60,
     paddingHorizontal: 30,
     alignItems: "center",
     backgroundColor: COLORS.cream,
     position: "relative",
     overflow: "hidden",
+  },
+  heroLogo: {
+    width: 140,
+    height: 140,
   },
   brandNameContainer: {
     flexDirection: "row",
@@ -535,6 +694,13 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: "300",
     color: COLORS.teal,
+    textAlign: "center",
+    letterSpacing: 2,
+  },
+  sectionTitleLight: {
+    fontSize: 36,
+    fontWeight: "300",
+    color: COLORS.white,
     textAlign: "center",
     letterSpacing: 2,
   },
@@ -698,6 +864,10 @@ const styles = StyleSheet.create({
     paddingVertical: 50,
     paddingHorizontal: 30,
     alignItems: "center",
+  },
+  footerLogo: {
+    width: 60,
+    height: 60,
   },
   footerBrand: {
     fontSize: 24,
